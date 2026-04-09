@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1900" pageHeight="1300" math="0" shadow="0">
+  <root>
+    <mxCell id="0" />
+    <mxCell id="1" parent="0" />
+
+    <mxCell id="title" value="Live Scoreboard — System Architecture &amp; Execution Flow" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=20;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="300" y="18" width="900" height="40" as="geometry" />
+    </mxCell>
+
+    <mxCell id="client" value="CLIENT&#xa;(Browser / App)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="295" y="60" width="210" height="65" as="geometry" />
+    </mxCell>
+
+    <mxCell id="api_server" value="API SERVER (multi-instance)" style="swimlane;fontStyle=1;align=center;startSize=30;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1">
+      <mxGeometry x="60" y="210" width="560" height="240" as="geometry" />
+    </mxCell>
+
+    <mxCell id="auth" value="Auth Middleware&#xa;(JWT Validation)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="api_server">
+      <mxGeometry x="20" y="48" width="145" height="58" as="geometry" />
+    </mxCell>
+
+    <mxCell id="rate_limiter" value="Rate Limiter&#xa;(per user / per IP)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="api_server">
+      <mxGeometry x="180" y="48" width="145" height="58" as="geometry" />
+    </mxCell>
+
+    <mxCell id="sub_handler" value="Submission Handler&#xa;• Save submission (PENDING)&#xa;• Publish to Kafka" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="api_server">
+      <mxGeometry x="20" y="128" width="195" height="70" as="geometry" />
+    </mxCell>
+
+    <mxCell id="sse_manager" value="SSE Manager&#xa;• in-memory client map&#xa;• Subscribe Redis Pub/Sub&#xa;• Fan-out on leaderboard update" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="api_server">
+      <mxGeometry x="355" y="48" width="190" height="155" as="geometry" />
+    </mxCell>
+
+    <mxCell id="kafka" value="KAFKA&#xa;topic: action-submissions&#xa;partition key: user_id" style="shape=cylinder3;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="880" y="270" width="185" height="120" as="geometry" />
+    </mxCell>
+
+    <mxCell id="worker" value="VALIDATION WORKER (consumer group)" style="swimlane;fontStyle=1;align=center;startSize=30;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="210" y="600" width="740" height="205" as="geometry" />
+    </mxCell>
+
+    <mxCell id="w1" value="① Acquire Redlock&#xa;lock:submit:{uid}:{aid}&#xa;TTL: 30s" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="worker">
+      <mxGeometry x="10" y="45" width="160" height="65" as="geometry" />
+    </mxCell>
+
+    <mxCell id="w2" value="② Idempotency check&#xa;UNIQUE(user_id, action_id)&#xa;skip if already VALID" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="worker">
+      <mxGeometry x="185" y="45" width="165" height="65" as="geometry" />
+    </mxCell>
+
+    <mxCell id="w3" value="③ Verify proof&#xa;④ Fetch score_value&#xa;   from actions table" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="worker">
+      <mxGeometry x="365" y="45" width="160" height="65" as="geometry" />
+    </mxCell>
+
+    <mxCell id="w4" value="⑤ Atomic UPDATE score&#xa;   score = score + delta&#xa;⑥ Optimistic lock (version)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="worker">
+      <mxGeometry x="540" y="45" width="185" height="65" as="geometry" />
+    </mxCell>
+
+    <mxCell id="w5" value="⑦ ZADD leaderboard     ⑧ Compare top10     ⑨ Publish Pub/Sub if changed     ⑩ Mark VALID + release Redlock" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="worker">
+      <mxGeometry x="185" y="130" width="380" height="55" as="geometry" />
+    </mxCell>
+
+    <mxCell id="postgres" value="PostgreSQL&#xa;users / actions / submissions" style="shape=cylinder3;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="20" y="628" width="175" height="120" as="geometry" />
+    </mxCell>
+
+    <mxCell id="redis" value="Redis" style="swimlane;fontStyle=1;align=center;startSize=25;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;" vertex="1" parent="1">
+      <mxGeometry x="1140" y="205" width="250" height="365" as="geometry" />
+    </mxCell>
+
+    <mxCell id="redis_sorted" value="Sorted Set&#xa;ZADD leaderboard &lt;score&gt; &lt;uid&gt;&#xa;ZREVRANGE 0 9 → top 10&#xa;O(log N) insert / O(K) query" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="redis">
+      <mxGeometry x="15" y="35" width="220" height="80" as="geometry" />
+    </mxCell>
+
+    <mxCell id="redis_pubsub" value="Pub/Sub&#xa;channel: leaderboard:top10&#xa;Fan-out to all API instances" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="redis">
+      <mxGeometry x="15" y="130" width="220" height="75" as="geometry" />
+    </mxCell>
+
+    <mxCell id="redis_lock" value="Redlock&#xa;lock:submit:{user_id}:{action_id}&#xa;TTL: 30s — prevents duplicate&#xa;concurrent processing" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="redis">
+      <mxGeometry x="15" y="220" width="220" height="80" as="geometry" />
+    </mxCell>
+
+    <mxCell id="dlq" value="Dead Letter Queue (DLQ)&#xa;Unprocessable messages&#xa;→ Alert + manual review" style="shape=cylinder3;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="1150" y="660" width="210" height="110" as="geometry" />
+    </mxCell>
+
+    <mxCell id="legend" value="Race Condition: 3 Layers&#xa;Layer 1: Redlock + UNIQUE(user_id, action_id)&#xa;Layer 2: Kafka partition by user_id → sequential per user&#xa;Layer 3: Atomic SQL + Optimistic Lock (version)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;align=left;" vertex="1" parent="1">
+      <mxGeometry x="40" y="870" width="380" height="85" as="geometry" />
+    </mxCell>
+
+    <mxCell id="legend2" value="SSE Fan-out (multi-instance)&#xa;Worker → Redis Pub/Sub → All API instances&#xa;Each instance fans out to local SSE clients&#xa;Throttle: broadcast only when top 10 changes" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;align=left;" vertex="1" parent="1">
+      <mxGeometry x="440" y="870" width="380" height="85" as="geometry" />
+    </mxCell>
+
+    <mxCell id="e_get" value="GET /scores/top10 (initial load)&#xa;GET /scores/live (SSE subscribe)" style="curved=1;html=1;strokeColor=#6c8ebf;fontSize=10;dashed=1;exitX=0.15;exitY=1;exitDx=0;exitDy=0;entryX=0.12;entryY=0;entryDx=0;entryDy=0;" edge="1" source="client" target="api_server" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="326" y="165" />
+          <mxPoint x="127" y="165" />
+        </Array>
+      </mxGeometry>
+    </mxCell>
+
+    <mxCell id="e1" value="① POST /actions/complete&#xa;{ action_id, proof } + JWT" style="curved=1;html=1;strokeColor=#6c8ebf;fontStyle=1;fontSize=10;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.42;entryY=0;entryDx=0;entryDy=0;" edge="1" source="client" target="api_server" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <mxCell id="e2" value="② 202 Accepted (async)" style="curved=1;html=1;strokeColor=#82b366;fontStyle=1;fontSize=10;dashed=1;exitX=0.62;exitY=0;exitDx=0;exitDy=0;entryX=0.65;entryY=1;entryDx=0;entryDy=0;" edge="1" source="api_server" target="client" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="407" y="165" />
+          <mxPoint x="432" y="165" />
+        </Array>
+      </mxGeometry>
+    </mxCell>
+
+    <mxCell id="e9" value="⑧ SSE push: leaderboard_update" style="curved=1;html=1;strokeColor=#82b366;fontStyle=1;fontSize=10;dashed=1;exitX=0.82;exitY=0;exitDx=0;exitDy=0;entryX=0.9;entryY=1;entryDx=0;entryDy=0;" edge="1" source="api_server" target="client" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="521" y="170" />
+          <mxPoint x="484" y="170" />
+        </Array>
+      </mxGeometry>
+    </mxCell>
+
+    <mxCell id="e3" value="③ PUBLISH message" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#b85450;fontStyle=1;fontSize=10;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="api_server" target="kafka" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <mxCell id="e4" value="④ CONSUME (sequential per user)" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#9673a6;fontStyle=1;fontSize=10;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.82;entryY=0;entryDx=0;entryDy=0;" edge="1" source="kafka" target="worker" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <mxCell id="e5" value="⑤ Read / Write" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#6c8ebf;fontStyle=1;fontSize=10;exitX=0;exitY=0.45;exitDx=0;exitDy=0;entryX=1;entryY=0.45;entryDx=0;entryDy=0;" edge="1" source="worker" target="postgres" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <mxCell id="e6" value="⑥ ZADD, Redlock, Pub/Sub" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#b85450;fontStyle=1;fontSize=10;exitX=1;exitY=0.4;exitDx=0;exitDy=0;entryX=0;entryY=0.65;entryDx=0;entryDy=0;" edge="1" source="worker" target="redis" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <mxCell id="e7" value="Save submission (PENDING)" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#6c8ebf;fontSize=10;dashed=1;exitX=0;exitY=0.85;exitDx=0;exitDy=0;entryX=0.3;entryY=0;entryDx=0;entryDy=0;" edge="1" source="api_server" target="postgres" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="35" y="414" />
+          <mxPoint x="35" y="560" />
+          <mxPoint x="72" y="560" />
+        </Array>
+      </mxGeometry>
+    </mxCell>
+
+    <mxCell id="e8" value="⑦ Pub/Sub: leaderboard update" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#82b366;fontStyle=1;fontSize=10;exitX=0;exitY=0.42;exitDx=0;exitDy=0;entryX=1;entryY=0.42;entryDx=0;entryDy=0;" edge="1" source="redis" target="api_server" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <mxCell id="e13" value="ZREVRANGE 0 9 (serve top10)" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#6c8ebf;fontSize=10;dashed=1;exitX=1;exitY=0.2;exitDx=0;exitDy=0;entryX=0;entryY=0.2;entryDx=0;entryDy=0;" edge="1" source="api_server" target="redis" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <mxCell id="e10" value="If all retries fail → DLQ" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#d6b656;fontStyle=1;fontSize=10;dashed=1;exitX=1;exitY=0.82;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="worker" target="dlq" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+  </root>
+</mxGraphModel>
